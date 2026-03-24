@@ -8,6 +8,7 @@ RUN npm run build
 
 # === Stage 2: Build Backend ===
 FROM node:20-alpine AS backend-build
+RUN apk add --no-cache openssl
 WORKDIR /app/backend
 COPY backend/package.json backend/package-lock.json* ./
 RUN npm install
@@ -16,6 +17,7 @@ RUN npx prisma generate && npm run build
 
 # === Stage 3: Production ===
 FROM node:20-alpine AS production
+RUN apk add --no-cache openssl
 WORKDIR /app
 
 # Install production deps
@@ -41,4 +43,4 @@ ENV PORT=3000
 EXPOSE 3000
 
 # Run migrations and start
-CMD ["sh", "-c", "npx prisma migrate deploy && node dist/server.js"]
+CMD ["sh", "-c", "npx prisma db push --accept-data-loss && node dist/server.js"]
