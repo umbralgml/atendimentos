@@ -1,0 +1,56 @@
+version: "3.8"
+
+services:
+  app:
+    image: atendimentos-app:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
+    environment:
+      - DATABASE_URL=postgresql://atendimentos:atendimentos_pwd_2024@db:5432/atendimentos?schema=public
+      - JWT_SECRET=s3cur3-jwt-s3cr3t-k3y-pr0duct10n-2024
+      - JWT_EXPIRES_IN=7d
+      - PORT=3000
+      - NODE_ENV=production
+      - CORS_ORIGIN=https://atendimentos.zioncore.com.br
+    networks:
+      - network_public
+      - internal
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+      labels:
+        - "traefik.enable=true"
+        - "traefik.http.routers.atendimentos.rule=Host(`atendimentos.zioncore.com.br`)"
+        - "traefik.http.routers.atendimentos.entrypoints=websecure"
+        - "traefik.http.routers.atendimentos.tls.certresolver=letsencrypt"
+        - "traefik.http.services.atendimentos.loadbalancer.server.port=3000"
+        - "traefik.docker.network=network_public"
+    depends_on:
+      - db
+
+  db:
+    image: postgres:16-alpine
+    environment:
+      - POSTGRES_USER=atendimentos
+      - POSTGRES_PASSWORD=atendimentos_pwd_2024
+      - POSTGRES_DB=atendimentos
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - internal
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  network_public:
+    external: true
+  internal:
+    driver: overlay
